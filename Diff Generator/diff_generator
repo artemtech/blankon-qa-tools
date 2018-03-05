@@ -1,0 +1,101 @@
+#!/bin/bash
+WORKDIR="/home/altintop/Dokumen/iso/blankon"      # change this path for storing diff data
+LAST_LOG=(`ls -d $WORKDIR/*/ | tail -1 | cut -d / -f 7`)
+DAFTAR=(`ls -d */ $WORKDIR/*/ | cut -d / -f 7`)
+DIRNAME=`date +%Y%m%d`
+
+function check_data(){
+  RESULT=1      # false
+  for item in "${DAFTAR[@]}"
+  do
+    if [ $1 == "$item" ]
+    then
+      RESULT=0  # true
+      break
+    fi
+  done
+  return $RESULT
+}
+
+function prepare_dir(){
+  n=1
+  if [ -d $DIRNAME ]
+  then
+    DIRNAME="$DIRNAME-00$n"
+    while(check_data $DIRNAME)
+    do
+      n=$(($n+1))
+      if [ $n -gt 9 ]
+      then
+      	DIRNAME=`date +%Y%m%d`-0$n
+      else
+	      DIRNAME=`date +%Y%m%d`-00$n
+      fi
+    done
+  fi
+  echo "Making work directory..."
+  mkdir -pv $DIRNAME
+  sleep 1
+  echo "Entering $DIRNAME ..."
+}
+
+function do_download_list(){
+  # downloading list of packages data from mirror
+  echo -e "Downloading $DIRNAME package lists ...\n"
+  wget http://cdimage-dev.blankonlinux.or.id/blankon/livedvd-harian/$DIRNAME/uluwatu-desktop-amd64.list
+}
+
+function draw_banner_diff(){
+  echo -e "\nGenerating diff between 2 release files..."
+  sleep 1
+  echo "--------------------------------------"
+  echo "${LAST_LOG[0]}     VS.    $DIRNAME"
+  echo "++++++++++++++++++++++++++++++++++++++"
+}
+
+function do_diff(){
+  draw_banner_diff
+  sleep 1
+  diff -Naur "$LAST_LOG" "$DIRNAME" > beda.txt  # generate diff data & store into file
+  sleep 1
+  cat beda.txt
+}
+
+function sync_iso(){
+  while true; do
+    read -p "Do you want to sync with latest iso ? (y/n)" ans
+    case $ans in
+      [Yy]* ) echo "Syncronizing latest ISO with server..."
+              sleep 1
+              zsync http://cdimage-dev.blankonlinux.or.id/blankon/livedvd-harian/$DIRNAME/uluwatu-desktop-amd64.iso.zsync
+              if [[ $? != 0 ]]; then
+                echo "Sync FAILED!"
+              else
+                echo "Sync ISO SUCCESS! \n Current Version: $DIRNAME"
+              fi
+              break;;
+      [Nn]* ) exit;;
+    esac
+  done
+}
+
+function generate_diff(){
+  cd $WORKDIR            # enter workingdir
+  prepare_dir            # create destination dir based on current date, if exist, additional suffix -00x added
+  cd $DIRNAME            # enter current date dir
+  do_download_list       # downloading list of packages
+  # Check either downloading package lists successful or not.
+  if [[ $? != 0 ]]; then
+    echo "ERROR! Aborting Diff Lookup with $DIRNAME"
+  else
+    cd $WORKDIR          # move back to workingdir
+    do_diff              # do diff commands
+    # Check either found diff data or empty string outputs
+    if [[ $(cat beda.txt) ]]; then
+      echo "----------------------------------------------"
+      sync_iso
+    fi
+  fi
+}
+
+generate_diff
