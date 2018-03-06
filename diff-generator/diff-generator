@@ -42,7 +42,7 @@ function prepare_dir(){
 function do_download_list(){
   # downloading list of packages data from mirror
   echo -e "Downloading $DIRNAME package lists ...\n"
-  wget http://cdimage-dev.blankonlinux.or.id/blankon/livedvd-harian/$DIRNAME/uluwatu-desktop-amd64.list
+  wget -P $DIRNAME http://cdimage-dev.blankonlinux.or.id/blankon/livedvd-harian/$DIRNAME/uluwatu-desktop-amd64.list
 }
 
 function draw_banner_diff(){
@@ -82,11 +82,11 @@ function sync_iso(){
 function generate_diff(){
   cd $WORKDIR            # enter workingdir
   prepare_dir            # create destination dir based on current date, if exist, additional suffix -00x added
-  cd $DIRNAME            # enter current date dir
   do_download_list       # downloading list of packages
   # Check either downloading package lists successful or not.
   if [[ $? != 0 ]]; then
     echo "ERROR! Aborting Diff Lookup with $DIRNAME"
+    rm -rf $DIRNAME
   else
     cd $WORKDIR          # move back to workingdir
     do_diff              # do diff commands
