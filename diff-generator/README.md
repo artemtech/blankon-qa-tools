@@ -1,6 +1,6 @@
-# Diff Generator
+# diff-generator
 
-Diff Generator is tool for getting package lists from current date and point us which packages that have different version with our last sync date
+```diff-generator``` is tool for getting package lists from current date and point us which packages that have different version with our last sync date
 
 ### Features:
 - [x] Diff between 2 released ISO package lists
